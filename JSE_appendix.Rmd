@@ -79,7 +79,7 @@ knitr::knit_hooks$set(chunk = function(x, options) {
 ```{r Options, include=FALSE}
 ### Customized options for this document
 # Add necessary packages here
-Packages <- c("tidyverse")
+Packages <- c("tidyverse", "sf")
 # Install them
 InstallPackages(Packages)
 
@@ -101,7 +101,7 @@ knitr::opts_chunk$set(
 options(width = 50)
 
 # ggplot style
-library("tidyverse", "sf")
+library("tidyverse")
 theme_set(theme_bw())
 theme_update(panel.background=element_rect(fill="transparent", colour=NA),
              plot.background=element_rect(fill="transparent", colour=NA))
@@ -129,39 +129,19 @@ unzip("data/trees_2021.zip", exdir = "data")
 library("sf")
 read_sf("data/trees_2021.geojson") %>% 
   st_transform(crs = 2154) -> 
-  trees_all
+  trees_all_raw
 read_sf("data/trees_logged.geojson") %>% 
   st_transform(crs = 2154) -> 
-  trees_logged
+  trees_logged_raw
 ```
 
 
 ### All trees
 
 ```{r}
-trees_all %>% 
-  # Bind the coordinates
-  bind_cols(as.data.frame(st_coordinates(trees_all)))
-            %>% 
-```
-
-
-```{r}
-# Tree description
-trees_all_Lambert93@data %>%
-  # Make a tibble for easier handling
-  as_tibble() %>% 
-  # Bind the coordinates
-  bind_cols(as.data.frame(trees_all_Lambert93@coords)) %>% 
+trees_all_raw %>% 
   # Filter Suzanne Lenglen park
   filter(adresse == "PARC OMNISPORT SUZANNE LENGLEN / 7 BOULEVARD DES FRERES VOISIN") %>% 
-  # Delete useless fields
-  select(-idemplacement, -typeemplacement, 
-         -adresse, -complementadresse,   
-         -geo_point_2d1, -geo_point_2d2,
-         -stadedeveloppement, -remarquable) %>%
-  # Create a numeric tree ID
-  mutate(ID = as.integer(idbase)) %>% 
   # Create a field with the species name
   mutate(Species_name = as.factor(paste(genre, espece))) %>%
   # Create a field with the status
@@ -170,39 +150,41 @@ trees_all_Lambert93@data %>%
   mutate(Genus = as.factor(genre)) %>% 
   mutate(Species = as.factor(espece)) %>% 
   # Rename and finally select columns
-  rename(French_species_name = libellefrancais,
-         X = coords.x1,
-         Y = coords.x2,
-         Circumference = circonferenceencm) %>% 
-  select(ID, Species_name, Status, Genus, Species, French_species_name, X, Y, Circumference) -> 
+  rename(
+    ID = idbase,
+    French_species_name = libellefrancais,
+    Circumference = circonferenceencm
+  ) %>% 
+  select(
+    ID, 
+    Species_name, 
+    Status, 
+    Genus, 
+    Species, 
+    French_species_name,
+    Circumference) -> 
   trees_all
 
 # Number of trees
 trees_all %>% nrow()
 ```
 
+
 ### Logged trees
 
 ```{r}
 # Tree description
-trees_logged_Lambert93@data %>%
-  # Make a tibble for easier handling
-  as_tibble() %>% 
-  # Bind the coordinates
-  bind_cols(as.data.frame(trees_logged_Lambert93@coords)) %>% 
+trees_logged_raw %>%
   # Filter Suzanne Lenglen park
   filter(adresse == "PARC OMNISPORT SUZANNE LENGLEN / 7 BOULEVARD DES FRERES VOISIN") %>% 
   # Exclude unidentified trees
   filter(!is.na(especearbreprecedent), !is.na(libellefrancaisarbreprecedent), !is.na(genrearbreprecedent)) %>%
   filter(libellefrancaisarbreprecedent != "Non spécifié") %>%
   filter(especearbreprecedent != "n. sp.") %>% 
-  # Delete useless fields
-  select(-adresse, -especefutur, -datedernierabattage, -varieteoucultivarfutur,
-         -genrefutur, -geo_point_2d1, -geo_point_2d2) %>%
-  # Create a numeric tree ID
-  mutate(ID = as.integer(idbase)) %>% 
   # Create a field with the species name
   mutate(Species_name = as.factor(paste(genrearbreprecedent, especearbreprecedent))) %>%
+  # Create a numeric ID
+  mutate(ID = as.integer(idbase)) %>%
   # Create a field with the status
   mutate(Status = "Logged") %>%
   # Genus and Species fields
@@ -211,10 +193,18 @@ trees_logged_Lambert93@data %>%
   # Reason for logging (in French)
   mutate(Logging_reason = motifabattagearbreprecedent) %>% 
   # Rename and finally select columns
-  rename(French_species_name = libellefrancaisarbreprecedent,
-         X = coords.x1,
-         Y = coords.x2) %>% 
-  select(ID, Species_name, Status, Genus, Species, Logging_reason, French_species_name, X, Y) -> 
+  rename(
+    French_species_name = libellefrancaisarbreprecedent
+  ) %>% 
+  select(
+    ID, 
+    Species_name, 
+    Status, 
+    Genus, 
+    Species, 
+    Logging_reason, 
+    French_species_name
+  ) -> 
   trees_logged
 
 # Number of trees
@@ -226,26 +216,34 @@ trees_logged %>% nrow()
 ```{r}
 # All trees
 trees_all %>%
-  # Delete the Circumference column that is not in trees_logged
+  # Delete the logged trees
+  filter(!(ID %in% trees_logged$ID)) %>% 
+  # Delete the circumference that is absent in trees_logged
   mutate(Circumference = NULL) %>% 
-  # Delete logged trees
-  anti_join(trees_logged, by = "ID") %>%
   # Bind the logged trees
-  bind_rows(trees_logged) -> trees
+  bind_rows(trees_logged) -> 
+  trees_no_circumference
 ```
 
 Circumferences of all trees, including logged ones, are in `tree_all` from where they can be extracted.
 
 ```{r}
+# Prepare a tibble with circumferences
 trees_all %>%
-  select(ID, Circumference) %>%
-  inner_join(trees, by = "ID") ->
+  select(ID, Circumference) %>% 
+  # inner_join.sf refuses sf objects
+  st_set_geometry(NULL) ->
+  Circumferences
+# Add the Circumference of trees
+trees_no_circumference %>%
+  inner_join(Circumferences, by = "ID") ->
   trees
 ```
 
 ### Short logging reasons
 
 ```{r}
+trees$Logging_reason[is.na(trees$Logging_reason)] <- ""
 trees$Logging_reason %>% 
   str_replace("Arbre.*", "Decaying") %>% 
   str_replace("Foyer.*", "Infected") ->
@@ -275,18 +273,20 @@ trees %>%
       as.character(Genus)
     )
   ) %>%
-  as.wmppp(unitname = c("meter", "meters")) ->
+  # Add X and Y
+  bind_cols(st_coordinates(trees)) %>% 
+  wmppp(
+    window = as.owin(st_bbox(trees)),
+    unitname = c("meter", "meters")
+    ) ->
   trees_infected
 autoplot(trees_infected)
 ```
 
 
-
-
-
 # Concentration
 
-## M_i
+## M_i inter
 
 ```{r}
 trees_infected %>% 
@@ -296,8 +296,55 @@ trees_infected %>%
      Individual = TRUE
   ) ->
   M_trees_infected
+
+autoplot(M_trees_infected)
 ```
 
+
+```{r}
+trees_infected %>% 
+  kwmppp(
+    fvind = M_trees_infected,
+    distance = 15,
+    ReferenceType = "Infected"
+  ) %>% 
+  plot
+# Add infected trees
+points(
+  trees_infected[trees_infected$marks$PointType == "Infected"],
+  pch = 20
+) 
+```
+
+## M_i acer
+
+```{r}
+trees_infected %>% 
+   Mhat(
+     ReferenceType = "Acer",
+     NeighborType = "Acer", 
+     Individual = TRUE
+  ) ->
+  M_Acer
+
+autoplot(M_Acer)
+```
+
+
+```{r}
+trees_infected %>% 
+  kwmppp(
+    fvind = M_Acer,
+    distance = 15,
+    ReferenceType = "Acer"
+  ) %>% 
+  plot
+# Add infected trees
+points(
+  trees_infected[trees_infected$marks$PointType == "Infected"],
+  pch = 20
+) 
+```
 
 
 
