@@ -326,6 +326,12 @@ points(
   trees_infected[trees_infected$marks$PointType == "Infected"],
   pch = 20
 )
+# And decaying trees
+points(
+  trees_infected[trees_infected$marks$PointType == "Decaying"],
+  pch = 4,
+  col = "red"
+)
 ```
 
 ## M_i acer
