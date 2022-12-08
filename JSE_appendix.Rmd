@@ -139,6 +139,7 @@ read_sf("data/trees_logged.geojson") %>%
 ### All trees
 
 ```{r}
+library("dplyr")
 trees_all_raw %>% 
   # Filter Suzanne Lenglen park
   filter(adresse == "PARC OMNISPORT SUZANNE LENGLEN / 7 BOULEVARD DES FRERES VOISIN") %>% 
@@ -268,9 +269,9 @@ trees %>%
   mutate(PointWeight = Circumference^2 / 4 / pi) %>%
   mutate(
     PointType = ifelse(
-      Logging_reason == "Infected", 
-      "Infected", 
-      as.character(Genus)
+      Logging_reason == "", 
+      as.character(Genus), 
+      as.character(Logging_reason)
     )
   ) %>%
   # Add X and Y
@@ -295,25 +296,36 @@ trees_infected %>%
      NeighborType = "Acer", 
      Individual = TRUE
   ) ->
-  M_trees_infected
+  M_infected_acer
 
-autoplot(M_trees_infected)
+autoplot(M_infected_acer)
 ```
 
 
 ```{r}
+resolution <- 128
+ratio <- with(
+  trees_infected$window, 
+  {
+   (yrange[2] - yrange[1]) / (xrange[2] - xrange[1])
+  }
+)
 trees_infected %>% 
   kwmppp(
-    fvind = M_trees_infected,
+    fvind = M_infected_acer,
     distance = 15,
-    ReferenceType = "Infected"
-  ) %>% 
-  plot
+    ReferenceType = "Infected",
+    Nbx = resolution,
+    Nby = resolution * ratio
+  ) ->
+map_infected_acer
+
+plot(map_infected_acer)
 # Add infected trees
 points(
   trees_infected[trees_infected$marks$PointType == "Infected"],
   pch = 20
-) 
+)
 ```
 
 ## M_i acer
@@ -332,21 +344,71 @@ autoplot(M_Acer)
 
 
 ```{r}
+# Window ratio
 trees_infected %>% 
   kwmppp(
     fvind = M_Acer,
     distance = 15,
-    ReferenceType = "Acer"
-  ) %>% 
-  plot
+    ReferenceType = "Acer",
+    Nbx = resolution,
+    Nby = resolution * ratio
+  ) ->
+map_acer_acer
+
+plot(map_acer_acer)
 # Add infected trees
 points(
   trees_infected[trees_infected$marks$PointType == "Infected"],
   pch = 20
-) 
+)
+# And decaying trees
+points(
+  trees_infected[trees_infected$marks$PointType == "Decaying"],
+  pch = 4,
+  col = "red"
+)
 ```
 
+# Stats
 
+```{r}
+trees_infected %>% 
+   MEnvelope(
+     r = c(0, 14:16),
+     NumberOfSimulations = 100, 
+     Alpha = 0.05,
+     ReferenceType = "Acer",
+     NeighborType = "Acer"
+  ) ->
+  M_Acer_Acer_CI
+autoplot(M_Acer_Acer_CI)
+```
+
+```{r}
+trees_infected %>% 
+   MEnvelope(
+     r = c(0, 14:16),
+     NumberOfSimulations = 100, 
+     Alpha = 0.05,
+     ReferenceType = "Infected",
+     NeighborType = "Acer"
+  ) ->
+  M_Infected_Acer_CI
+autoplot(M_Infected_Acer_CI)
+```
+
+```{r}
+trees_infected %>% 
+   MEnvelope(
+     r = c(0, 14:16),
+     NumberOfSimulations = 100, 
+     Alpha = 0.05,
+     ReferenceType = "Decaying",
+     NeighborType = "Acer"
+  ) ->
+  M_Decaying_Acer_CI
+autoplot(M_Decaying_Acer_CI)
+```
 
 
 `r if (!knitr:::is_latex_output()) '# References {-}'`
