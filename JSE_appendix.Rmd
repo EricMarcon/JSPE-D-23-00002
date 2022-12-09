@@ -24,6 +24,9 @@ urlcolor: blue
 always_allow_html: yes
 csquotes: true
 output:
+  rmdformats::downcute:
+    use_bookdown: yes
+    lightbox: yes
   bookdown::html_document2:
     toc: yes
     toc_float: yes
@@ -34,15 +37,7 @@ output:
     citation_package: natbib
     latex_engine: xelatex
     keep_tex: yes
-  rmdformats::downcute:
-    use_bookdown: yes
-    lightbox: yes
   bookdown::word_document2: default
-  bookdown::gitbook:
-    config:
-      download: "pdf"
-      sharing:
-        github: yes
 ---
 
 ```{r DoNotModify, include=FALSE}
@@ -79,13 +74,13 @@ knitr::knit_hooks$set(chunk = function(x, options) {
 ```{r Options, include=FALSE}
 ### Customized options for this document
 # Add necessary packages here
-Packages <- c("tidyverse", "sf")
+Packages <- c("tidyverse", "sf", "dbmss")
 # Install them
 InstallPackages(Packages)
 
 # knitr options
 knitr::opts_chunk$set(
-  cache =   FALSE,    # Cache chunk results
+  cache =   TRUE,     # Cache chunk results
   include = TRUE,     # Show/Hide chunks
   echo =    TRUE,     # Show/Hide code
   warning = FALSE,    # Show/Hide warnings
@@ -121,8 +116,7 @@ Data are stored in `trees_2021.zip` which contains two GeoJSON files:
 - trees_logged contains all trees logged 
 
 They must be read.
-Data are projected into the Lambert 93 datum.
-Coordinates are then in meters.
+Data are projected into the Lambert 93 datum so that coordinates are in meters.
 
 ```{r data}
 unzip("data/trees_2021.zip", exdir = "data")
@@ -137,6 +131,19 @@ read_sf("data/trees_logged.geojson") %>%
 
 
 ### All trees
+
+The first dataset contains all trees in Paris in 2021, including those to be cut.
+
+Trees from the Suzanne Lenglen park are selected.
+Columns of interest are:
+
+- `ID`: a numeric unique identifier for each tree.
+- `Species_name`: the scientific name of the tree species, i.e. Genus species.
+- `Status`: Alive. 
+- `Genus`.
+- `Species`.
+- `French_species_name`: vernacular name.
+- `Circumference`: in cm.
 
 ```{r}
 library("dplyr")
@@ -169,9 +176,17 @@ trees_all_raw %>%
 # Number of trees
 trees_all %>% nrow()
 ```
+We have 1472 trees in the park.
 
 
 ### Logged trees
+
+Logged trees are in the second dataset.
+
+Their status is "Logged".
+An extra field, `Logging_reason` contains the motivation to cut them off (in French).
+`Circumfernce` is absent.
+
 
 ```{r}
 # Tree description
@@ -212,7 +227,15 @@ trees_logged_raw %>%
 trees_logged %>% nrow()
 ```
 
+48 among the 1472 trees of the park were logged.
+
+
 ### Merge
+
+The two datasets are merged here.
+
+The logged trees must be removed from the first one.
+`Circumference` is removed because it is missing from the logged trees dataset.
 
 ```{r}
 # All trees
@@ -226,7 +249,7 @@ trees_all %>%
   trees_no_circumference
 ```
 
-Circumferences of all trees, including logged ones, are in `tree_all` from where they can be extracted.
+Circumferences of all trees, including logged ones, are in `tree_all` from where they can be recovered.
 
 ```{r}
 # Prepare a tibble with circumferences
@@ -241,7 +264,13 @@ trees_no_circumference %>%
   trees
 ```
 
-### Short logging reasons
+
+### Simpler logging reasons
+
+Logging reasons can be:
+
+- Decaying: the tree's condition is not healthy enough to keep it safely in a public park.
+- Infected: the tree is a maple affected by the (contagious) sooty bark disease, caused by the fungus *Cryptostroma corticale*.
 
 ```{r}
 trees$Logging_reason[is.na(trees$Logging_reason)] <- ""
@@ -254,13 +283,20 @@ trees$Logging_reason %>%
 
 ### Factors
 
+Several fields are converted to factors for efficiency.
+
 ```{r}
 trees$Logging_reason <- as.factor(trees$Logging_reason)
 trees$Status <- as.factor(trees$Status)
 trees$French_species_name <- as.factor(trees$French_species_name)
 ```
 
-## Point patterns
+
+## Point pattern
+
+dbmms uses weighted, marked, planar point patterns (wmppp).
+A wmppp named `trees_infected` is built. Point marks are their basal area (as weight) and either their logging reason or their genus if they are alive. 
+
 
 ```{r}
 library("dbmss")
@@ -283,11 +319,110 @@ trees %>%
   trees_infected
 autoplot(trees_infected)
 ```
+The map shows the tree genera. 
+Maple (*Acer sp.*) are the most abundant trees in the park.
 
 
-# Concentration
+# Spatial analyses
 
-## M_i inter
+## Spatial concentration of maple trees
+
+The M statistic is computed to detect the spatial concentration of maple trees. 
+
+```{r}
+NumberOfSimulations <- 1000
+trees_infected %>% 
+   MEnvelope(
+     ReferenceType = "Acer",
+     NeighborType = "Acer", 
+     NumberOfSimulations = NumberOfSimulations
+  ) ->
+  M_Acer
+
+autoplot(M_Acer)
+```
+
+To map it, individual values must be calculated at the chosen distance, that is 15 meters.
+
+```{r}
+Distance <- 15
+trees_infected %>% 
+   Mhat(
+     r = c(0, Distance),
+     ReferenceType = "Acer",
+     NeighborType = "Acer", 
+     Individual = TRUE
+  ) ->
+  M_ind_Acer
+```
+
+The map requires krigeing the individual values on a grid of points.
+To build the grid, the size ratio of the spatial window is calculated.
+The number of rows and columns of the grid will respect this ratio so that its points are equally spaced.
+
+```{r}
+# Window ratio
+ratio <- with(
+  trees_infected$window, 
+  {
+   (yrange[2] - yrange[1]) / (xrange[2] - xrange[1])
+  }
+)
+# Map resolution: number of columns of the grid.
+resolution <- 512
+```
+
+A kriged weighted, marked, planar point patterns (`kwmppp`) object is produced and plotted.
+Logged trees are added to the map:
+
+- Infected trees are black points,
+- Decaying trees are red crosses.
+
+```{r}
+trees_infected %>% 
+  kwmppp(
+    fvind = M_ind_Acer,
+    distance = 15,
+    ReferenceType = "Acer",
+    Nbx = resolution,
+    Nby = resolution * ratio
+  ) ->
+map_acer
+
+plot(map_acer)
+# Add infected trees
+points(
+  trees_infected[trees_infected$marks$PointType == "Infected"],
+  pch = 20
+)
+# And decaying trees
+points(
+  trees_infected[trees_infected$marks$PointType == "Decaying"],
+  pch = 4,
+  col = "red"
+)
+```
+
+Infected trees are present in the areas where maples are concentrated.
+
+
+## Concentration of maples around infected trees
+
+To test the intertype concentration between sane and infected maple trees, the intertype M statistic is computed.
+
+```{r}
+trees_infected %>% 
+   MEnvelope(
+     ReferenceType = "Infected",
+     NeighborType = "Acer",
+     NumberOfSimulations = NumberOfSimulations
+  ) ->
+  M_Infected_Acer
+
+autoplot(M_Infected_Acer)
+```
+
+The map is produced.
 
 ```{r}
 trees_infected %>% 
@@ -296,23 +431,11 @@ trees_infected %>%
      NeighborType = "Acer", 
      Individual = TRUE
   ) ->
-  M_infected_acer
+  M_ind_Infected_Acer
 
-autoplot(M_infected_acer)
-```
-
-
-```{r}
-resolution <- 128
-ratio <- with(
-  trees_infected$window, 
-  {
-   (yrange[2] - yrange[1]) / (xrange[2] - xrange[1])
-  }
-)
 trees_infected %>% 
   kwmppp(
-    fvind = M_infected_acer,
+    fvind = M_ind_Infected_Acer,
     distance = 15,
     ReferenceType = "Infected",
     Nbx = resolution,
@@ -333,88 +456,19 @@ points(
   col = "red"
 )
 ```
+Infected and sane maple trees are significantly concentrated.
 
-## M_i acer
-
-```{r}
-trees_infected %>% 
-   Mhat(
-     ReferenceType = "Acer",
-     NeighborType = "Acer", 
-     Individual = TRUE
-  ) ->
-  M_Acer
-
-autoplot(M_Acer)
-```
-
-
-```{r}
-# Window ratio
-trees_infected %>% 
-  kwmppp(
-    fvind = M_Acer,
-    distance = 15,
-    ReferenceType = "Acer",
-    Nbx = resolution,
-    Nby = resolution * ratio
-  ) ->
-map_acer_acer
-
-plot(map_acer_acer)
-# Add infected trees
-points(
-  trees_infected[trees_infected$marks$PointType == "Infected"],
-  pch = 20
-)
-# And decaying trees
-points(
-  trees_infected[trees_infected$marks$PointType == "Decaying"],
-  pch = 4,
-  col = "red"
-)
-```
-
-# Stats
+In contrast, decaying trees and mapples rather repulse each others.
 
 ```{r}
 trees_infected %>% 
    MEnvelope(
-     r = c(0, 14:16),
-     NumberOfSimulations = 100, 
-     Alpha = 0.05,
-     ReferenceType = "Acer",
-     NeighborType = "Acer"
-  ) ->
-  M_Acer_Acer_CI
-autoplot(M_Acer_Acer_CI)
-```
-
-```{r}
-trees_infected %>% 
-   MEnvelope(
-     r = c(0, 14:16),
-     NumberOfSimulations = 100, 
-     Alpha = 0.05,
-     ReferenceType = "Infected",
-     NeighborType = "Acer"
-  ) ->
-  M_Infected_Acer_CI
-autoplot(M_Infected_Acer_CI)
-```
-
-```{r}
-trees_infected %>% 
-   MEnvelope(
-     r = c(0, 14:16),
-     NumberOfSimulations = 100, 
-     Alpha = 0.05,
      ReferenceType = "Decaying",
-     NeighborType = "Acer"
+     NeighborType = "Acer",
+     NumberOfSimulations = NumberOfSimulations
   ) ->
-  M_Decaying_Acer_CI
-autoplot(M_Decaying_Acer_CI)
+  M_Decaying_Acer
+autoplot(M_Decaying_Acer)
 ```
-
 
 `r if (!knitr:::is_latex_output()) '# References {-}'`
