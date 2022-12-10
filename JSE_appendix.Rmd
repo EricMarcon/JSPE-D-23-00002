@@ -230,7 +230,7 @@ trees_logged %>% nrow()
 48 among the 1472 trees of the park were logged.
 
 
-### Merge
+## Merge
 
 The two datasets are merged here.
 
@@ -292,7 +292,7 @@ trees$French_species_name <- as.factor(trees$French_species_name)
 ```
 
 
-## Point pattern
+## Point patterns
 
 dbmms uses weighted, marked, planar point patterns (wmppp).
 A wmppp named `trees_infected` is built. Point marks are their basal area (as weight) and either their logging reason or their genus if they are alive. 
@@ -317,8 +317,26 @@ trees %>%
     unitname = c("meter", "meters")
     ) ->
   trees_infected
-autoplot(trees_infected)
 ```
+
+We also need a point pattern to describe the park before logging, as a reference.
+
+```{r}
+trees_all %>%
+  # Weight is the basal area
+  mutate(PointWeight = Circumference^2 / 4 / pi) %>%
+  # Genus is the point type
+  rename(PointType = Genus) %>%
+  # Add X and Y
+  bind_cols(st_coordinates(trees_all)) %>% 
+  wmppp(
+    window = as.owin(st_bbox(trees_all)),
+    unitname = c("meter", "meters")
+    ) ->
+  trees_2021
+autoplot(trees_2021)
+```
+
 The map shows the tree genera. 
 Maple (*Acer sp.*) are the most abundant trees in the park.
 
@@ -327,12 +345,14 @@ Maple (*Acer sp.*) are the most abundant trees in the park.
 
 ## Spatial concentration of maple trees
 
-The M statistic is computed to detect the spatial concentration of maple trees. 
+The M statistic is computed to detect the spatial concentration of maple trees before logging. 
 
 ```{r}
+Distance <- 15
 NumberOfSimulations <- 1000
-trees_infected %>% 
+trees_2021 %>% 
    MEnvelope(
+     r = 0:(10 * Distance) / 5,
      ReferenceType = "Acer",
      NeighborType = "Acer", 
      NumberOfSimulations = NumberOfSimulations
@@ -345,8 +365,7 @@ autoplot(M_Acer)
 To map it, individual values must be calculated at the chosen distance, that is 15 meters.
 
 ```{r}
-Distance <- 15
-trees_infected %>% 
+trees_2021 %>% 
    Mhat(
      r = c(0, Distance),
      ReferenceType = "Acer",
@@ -379,10 +398,10 @@ Logged trees are added to the map:
 - Decaying trees are red crosses.
 
 ```{r}
-trees_infected %>% 
+trees_2021 %>% 
   kwmppp(
     fvind = M_ind_Acer,
-    distance = 15,
+    distance = Distance,
     ReferenceType = "Acer",
     Nbx = resolution,
     Nby = resolution * ratio
@@ -413,6 +432,7 @@ To test the intertype concentration between sane and infected maple trees, the i
 ```{r}
 trees_infected %>% 
    MEnvelope(
+     r = 0:(10 * Distance) / 5,
      ReferenceType = "Infected",
      NeighborType = "Acer",
      NumberOfSimulations = NumberOfSimulations
@@ -436,7 +456,7 @@ trees_infected %>%
 trees_infected %>% 
   kwmppp(
     fvind = M_ind_Infected_Acer,
-    distance = 15,
+    distance = Distance,
     ReferenceType = "Infected",
     Nbx = resolution,
     Nby = resolution * ratio
@@ -463,6 +483,7 @@ In contrast, decaying trees and mapples rather repulse each others.
 ```{r}
 trees_infected %>% 
    MEnvelope(
+     r = 0:(10 * Distance) / 5,
      ReferenceType = "Decaying",
      NeighborType = "Acer",
      NumberOfSimulations = NumberOfSimulations
