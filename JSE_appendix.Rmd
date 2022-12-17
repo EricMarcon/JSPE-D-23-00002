@@ -74,7 +74,7 @@ knitr::knit_hooks$set(chunk = function(x, options) {
 ```{r Options, include=FALSE}
 ### Customized options for this document
 # Add necessary packages here
-Packages <- c("tidyverse", "sf", "dbmss")
+Packages <- c("dplyr", "ggplot2", "sf", "dbmss")
 # Install them
 InstallPackages(Packages)
 
@@ -96,7 +96,7 @@ knitr::opts_chunk$set(
 options(width = 50)
 
 # ggplot style
-library("tidyverse")
+library("ggplot2")
 theme_set(theme_bw())
 theme_update(panel.background=element_rect(fill="transparent", colour=NA),
              plot.background=element_rect(fill="transparent", colour=NA))
@@ -118,6 +118,7 @@ Cases are a Matérn [@Matern1960] point pattern with $\kappa$ (expected) cluster
 Controls are a Poisson point pattern (i.e. complete spatial randomness) of $\lambda$ (expected) points.
 
 ```{r}
+library(dplyr)
 library(dbmss)
 # Simulation of cases (clusters)
 rMatClust(kappa = 10, scale = 0.05, mu = 10) %>% 
