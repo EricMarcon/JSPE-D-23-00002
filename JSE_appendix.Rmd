@@ -74,7 +74,7 @@ knitr::knit_hooks$set(chunk = function(x, options) {
 ```{r Options, include=FALSE}
 ### Customized options for this document
 # Add necessary packages here
-Packages <- c("dplyr", "ggplot2", "sf", "dbmss")
+Packages <- c("dplyr", "ggplot2", "stringr", "sf", "dbmss")
 # Install them
 InstallPackages(Packages)
 
@@ -512,6 +512,7 @@ Logging reasons can be:
 - Infected: the tree is a maple affected by the (contagious) sooty bark disease, caused by the fungus *Cryptostroma corticale*.
 
 ```{r}
+library("stringr")
 trees$Logging_reason[is.na(trees$Logging_reason)] <- ""
 trees$Logging_reason %>% 
   str_replace("Arbre.*", "Decaying") %>% 
