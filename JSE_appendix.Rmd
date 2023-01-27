@@ -201,7 +201,7 @@ plot(M_TheoEx_map)
 # Add the cases to the map
 points(
   ALL[ALL$marks$PointType == "Cases"],
-  pch = 20
+  pch = 20, col = "red"
 )
 ```
 
@@ -214,7 +214,7 @@ High densities are similar to high relative concentrations in this example becau
 plot(density(CASES), main = "")
 points(
   ALL[ALL$marks$PointType == "Cases"],
-  pch = 20
+  pch = 20, col = "red"
 )
 ```
 
@@ -314,7 +314,7 @@ plot(M_TheoEx_map)
 # Add the cases to the map
 points(
   ALL[ALL$marks$PointType == "Cases"],
-  pch = 20
+  pch = 20, col = "red"
 )
 ```
 
@@ -333,7 +333,7 @@ High densities are not similar to high relative concentrations in this example b
 plot(density(CASES), main = "")
 points(
   ALL[ALL$marks$PointType == "Cases"],
-  pch = 20
+  pch = 20, col = "red"
 )
 ```
 
@@ -574,7 +574,8 @@ trees_all %>%
     unitname = c("meter", "meters")
     ) ->
   trees_2021
-autoplot(trees_2021)
+autoplot(trees_2021) + 
+  ggplot2::labs(size="Basal area", color="Genus")
 ```
 
 The map shows the tree genera. 
@@ -663,6 +664,86 @@ points(
 ```
 
 Infected trees are present in the areas where maples are concentrated.
+
+The 15-meter distance has been chosen because it is a plausible distance of contagion between trees.
+A shorter distance, say 6 meters, would be justified as a peak of M(distance) but neighbors are scarse at this scale, leading to less statistical power.
+At greater distances, such as 30m, concentration is still significant but neighborhoods overlap more, leading to less clear results.
+
+
+Both alternative distances are tested here.
+
+Considering 6-meter-radius neighborhoods, the map shows that some high and low values of local concentration are not detected:
+
+```{r, echo = FALSE}
+trees_2021 %>% 
+   Mhat(
+     r = c(0, 6),
+     ReferenceType = "Acer",
+     NeighborType = "Acer", 
+     Individual = TRUE
+  ) ->
+  M_ind_Acer_6
+trees_2021 %>% 
+  kwmppp(
+    fvind = M_ind_Acer_6,
+    distance = 6,
+    ReferenceType = "Acer",
+    Nbx = resolution,
+    Nby = resolution * ratio
+  ) ->
+map_acer_6
+
+plot(map_acer_6)
+# Add infected trees
+points(
+  trees_infected[trees_infected$marks$PointType == "Infected"],
+  pch = 20
+)
+# And decaying trees
+points(
+  trees_infected[trees_infected$marks$PointType == "Decaying"],
+  pch = 4,
+  col = "red"
+)
+```
+
+30-meter-radius neighborhoods are shown below:
+
+```{r, echo = FALSE}
+trees_2021 %>% 
+   Mhat(
+     r = c(0, 30),
+     ReferenceType = "Acer",
+     NeighborType = "Acer", 
+     Individual = TRUE
+  ) ->
+  M_ind_Acer_30
+trees_2021 %>% 
+  kwmppp(
+    fvind = M_ind_Acer_30,
+    distance = 30,
+    ReferenceType = "Acer",
+    Nbx = resolution,
+    Nby = resolution * ratio
+  ) ->
+map_acer_30
+
+plot(map_acer_30)
+# Add infected trees
+points(
+  trees_infected[trees_infected$marks$PointType == "Infected"],
+  pch = 20
+)
+# And decaying trees
+points(
+  trees_infected[trees_infected$marks$PointType == "Decaying"],
+  pch = 4,
+  col = "red"
+)
+```
+
+Increasing the distance that defines neighborhoods extends the areas where high or low concentration is detected around the most isolated trees, making them more visible, but blurs them in dense areas, where high and low values overlap and cancel out (e.g. in the south-eastern part of the map).
+So the appropriate distance should be chosen according to the knowledge of the studied process.
 
 
 ### Concentration of maples around infected trees
