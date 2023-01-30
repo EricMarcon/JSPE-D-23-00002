@@ -1,10 +1,10 @@
 ---
 title: "Appendix"
 author:
-  - name: "Florence Puech"
   - name: "Eric Marcon"
+  - name: "Florence Puech"
 abstract: >
-  Code to reproduce the map of the main text.
+  Code to reproduce the figures of the main text.
 date: "`r format(Sys.time(), '%d %B %Y')`"
 url: https://ericmarcon.github.io/JSE_appendix/
 github-repo: ericmarcon/JSE_appendix
@@ -100,9 +100,11 @@ knitr::opts_chunk$set(dev.args=list(bg="transparent"))
 set.seed(975)
 ```
 
-# Theoretical example: homogeneous controls
+# Theoretical example: homogeneous controls{#sec:thh}
 
 Analyses rely on the _dbmss_ [@Marcon2014] package for R [@R].
+
+This example completes that of the main text, detailed in section \@ref(sec:thnonh).
 
 ## Dataset simulation
 
@@ -136,7 +138,7 @@ autoplot(ALL)
 ```
 
 
-## Calculate and plot M Cases
+## Calculate and plot *M* Cases
 
 ```{r}
 # Fix the number of simulations and the level of risk
@@ -159,7 +161,7 @@ autoplot(M_env_cases)
 The plot shows a clear relative concentration of cases.
 
 
-## Map M results
+## Map *M* results
 
 To plot the individual values of *M* around each case, a distance must be chosen.
 Then, the function must be computed at this distance with individual values.
@@ -213,9 +215,9 @@ points(
 ```
 
 
-# Theoretical example: inhimogeneous controls
+# Theoretical example: non-homogeneuous controls{#sec:thnonh}
 
-Analyses rely on the _dbmss_ [@Marcon2014] package for R [@R].
+This section allows reproducing the theoretical example presented in the main text.
 
 ## Dataset simulation
 
@@ -248,7 +250,7 @@ autoplot(ALL)
 ```
 
 
-## Calculate and plot M Cases
+## Calculate and plot *M* Cases
 
 ```{r}
 # Fix the number of simulations and the level of risk
@@ -272,7 +274,7 @@ autoplot(M_env_cases)
 The plot shows a clear relative concentration of cases.
 
 
-## Map M results
+## Map *M* results
 
 To plot the individual values of *M* around each case, a distance must be chosen.
 Then, the function must be computed at this distance with individual values.
@@ -312,7 +314,7 @@ points(
 )
 ```
 
-We can see that cases are concentrated everywhere (local M value above 1) because we chose a Matérn point pattern.
+We can see that cases are concentrated everywhere (local *M* value above 1) because we chose a Matérn point pattern.
 
 The areas with the higher relative concentration are located in the north of the map because the controls are less dense there.
 The southern-most cluster illustrates that the relative concentration of cases, although higher than 1, is clearly lower than that of the northern clusters, which have the same characteristics but are in a less-dense control neighborhood.
@@ -321,7 +323,7 @@ The southern-most cluster illustrates that the relative concentration of cases, 
 ## Compare with the density of cases
 
 The density of cases is plotted.
-High densities are not similar to high relative concentrations in this example because the control points are not homogeneously distributed.
+High densities are *not* similar to high relative concentrations in this example because the control points are not homogeneously distributed.
 
 ```{r}
 plot(density(CASES), main = "")
@@ -332,7 +334,7 @@ points(
 ```
 
 
-# Suzanne Lenglen Park
+# Suzanne Lenglen Park{#sec:posl}
 
 ## Data
 
@@ -346,7 +348,7 @@ Our data is extracted from "Paris open data" [^1].
 Data are stored in `trees_2021.zip` which contains two GeoJSON files:
 
 - trees_2021 stores all trees of the city of Paris in 2021.
-- trees_logged contains all trees logged 
+- trees_logged contains all trees logged after 2021.
 
 They must be read.
 Data are projected into the Lambert 93 datum so that coordinates are in meters.
@@ -409,7 +411,8 @@ trees_all_raw %>%
 # Number of trees
 trees_all %>% nrow()
 ```
-We have 1472 trees in the park.
+
+We have `r nrow(trees_all)` trees in the park.
 
 
 #### Logged trees
@@ -418,7 +421,7 @@ Logged trees are in the second dataset.
 
 Their status is "Logged".
 An extra field, `Logging_reason` contains the motivation to cut them off (in French).
-`Circumfernce` is absent.
+`Circumference` is absent.
 
 
 ```{r}
@@ -460,7 +463,7 @@ trees_logged_raw %>%
 trees_logged %>% nrow()
 ```
 
-48 among the 1472 trees of the park were logged.
+`r nrow(trees_logged)` among the `r nrow(trees_all)` trees of the park were logged.
 
 
 #### Merge
@@ -498,19 +501,19 @@ trees_no_circumference %>%
 ```
 
 
-#### Simpler logging reasons
+#### Shorter logging reasons
 
 Logging reasons can be:
 
 - Decaying: the tree's condition is not healthy enough to keep it safely in a public park.
-- Infected: the tree is a maple affected by the (contagious) sooty bark disease, caused by the fungus *Cryptostroma corticale*.
+- infested: the tree is a maple affected by the (contagious) sooty bark disease, caused by the fungus *Cryptostroma corticale*.
 
 ```{r}
 library("stringr")
 trees$Logging_reason[is.na(trees$Logging_reason)] <- ""
 trees$Logging_reason %>% 
   str_replace("Arbre.*", "Decaying") %>% 
-  str_replace("Foyer.*", "Infected") ->
+  str_replace("Foyer.*", "infested") ->
   trees$Logging_reason
 ```
 
@@ -529,7 +532,7 @@ trees$French_species_name <- as.factor(trees$French_species_name)
 ### Point patterns
 
 dbmms uses weighted, marked, planar point patterns (wmppp).
-A wmppp named `trees_infected` is built. Point marks are their basal area (as weight) and either their logging reason or their genus if they are alive. 
+A wmppp named `trees_infested` is built. Point marks are their basal area (as weight) and either their logging reason or their genus if they are alive. 
 
 
 ```{r}
@@ -550,7 +553,7 @@ trees %>%
     window = as.owin(st_bbox(trees)),
     unitname = c("meter", "meters")
     ) ->
-  trees_infected
+  trees_infested
 ```
 
 We also need a point pattern to describe the park before logging, as a reference.
@@ -573,14 +576,12 @@ autoplot(trees_2021) +
 ```
 
 The map shows the tree genera. 
-Maple (*Acer sp.*) are the most abundant trees in the park.
+Maple (*Acer spp.*) are the most abundant trees in the park.
 
 
-## Spatial analyses
+## Spatial concentration of maple trees
 
-### Spatial concentration of maple trees
-
-The M statistic is computed to detect the spatial concentration of maple trees before logging. 
+The *M* statistic is computed to detect the spatial concentration of maple trees before logging. 
 
 ```{r}
 Distance <- 15
@@ -617,7 +618,7 @@ The number of rows and columns of the grid will respect this ratio so that its p
 ```{r}
 # Window ratio
 ratio <- with(
-  trees_infected$window, 
+  trees_infested$window, 
   {
    (yrange[2] - yrange[1]) / (xrange[2] - xrange[1])
   }
@@ -629,7 +630,7 @@ resolution <- 512
 A kriged weighted, marked, planar point patterns (`kwmppp`) object is produced and plotted.
 Logged trees are added to the map:
 
-- Infected trees are black points,
+- infested trees are black points,
 - Decaying trees are red crosses.
 
 ```{r}
@@ -644,25 +645,24 @@ trees_2021 %>%
 map_acer
 
 plot(map_acer)
-# Add infected trees
+# Add infested trees
 points(
-  trees_infected[trees_infected$marks$PointType == "Infected"],
+  trees_infested[trees_infested$marks$PointType == "infested"],
   pch = 20
 )
 # And decaying trees
 points(
-  trees_infected[trees_infected$marks$PointType == "Decaying"],
+  trees_infested[trees_infested$marks$PointType == "Decaying"],
   pch = 4,
   col = "red"
 )
 ```
 
-Infected trees are present in the areas where maples are concentrated.
+infested trees are present in the areas where maples are concentrated.
 
 The 15-meter distance has been chosen because it is a plausible distance of contagion between trees.
-A shorter distance, say 6 meters, would be justified as a peak of M(distance) but neighbors are scarse at this scale, leading to less statistical power.
+A shorter distance, say 6 meters, would be justified as a peak of *M*(distance) but neighbors are scarse at this scale, leading to less statistical power.
 At greater distances, such as 30m, concentration is still significant but neighborhoods overlap more, leading to less clear results.
-
 
 Both alternative distances are tested here.
 
@@ -688,14 +688,14 @@ trees_2021 %>%
 map_acer_6
 
 plot(map_acer_6)
-# Add infected trees
+# Add infested trees
 points(
-  trees_infected[trees_infected$marks$PointType == "Infected"],
+  trees_infested[trees_infested$marks$PointType == "infested"],
   pch = 20
 )
 # And decaying trees
 points(
-  trees_infected[trees_infected$marks$PointType == "Decaying"],
+  trees_infested[trees_infested$marks$PointType == "Decaying"],
   pch = 4,
   col = "red"
 )
@@ -723,14 +723,14 @@ trees_2021 %>%
 map_acer_30
 
 plot(map_acer_30)
-# Add infected trees
+# Add infested trees
 points(
-  trees_infected[trees_infected$marks$PointType == "Infected"],
+  trees_infested[trees_infested$marks$PointType == "infested"],
   pch = 20
 )
 # And decaying trees
 points(
-  trees_infected[trees_infected$marks$PointType == "Decaying"],
+  trees_infested[trees_infested$marks$PointType == "Decaying"],
   pch = 4,
   col = "red"
 )
@@ -740,63 +740,65 @@ Increasing the distance that defines neighborhoods extends the areas where high 
 So the appropriate distance should be chosen according to the knowledge of the studied process.
 
 
-### Concentration of maples around infected trees
+## Concentration of maples around infested trees
 
-To test the intertype concentration between sane and infected maple trees, the intertype M statistic is computed.
+To test the intertype concentration between sane and infested maple trees, the intertype *M* statistic is computed.
 
 ```{r}
-trees_infected %>% 
+trees_infested %>% 
    MEnvelope(
      r = 0:(10 * Distance) / 5,
-     ReferenceType = "Infected",
+     ReferenceType = "infested",
      NeighborType = "Acer",
      NumberOfSimulations = NumberOfSimulations
   ) ->
-  M_Infected_Acer
+  M_infested_Acer
 
-autoplot(M_Infected_Acer)
+autoplot(M_infested_Acer)
 ```
 
 The map is produced.
 
 ```{r}
-trees_infected %>% 
+trees_infested %>% 
    Mhat(
-     ReferenceType = "Infected",
+     ReferenceType = "infested",
      NeighborType = "Acer", 
      Individual = TRUE
   ) ->
-  M_ind_Infected_Acer
+  M_ind_infested_Acer
 
-trees_infected %>% 
+trees_infested %>% 
   kwmppp(
-    fvind = M_ind_Infected_Acer,
+    fvind = M_ind_infested_Acer,
     distance = Distance,
-    ReferenceType = "Infected",
+    ReferenceType = "infested",
     Nbx = resolution,
     Nby = resolution * ratio
   ) ->
-map_infected_acer
+map_infested_acer
 
-plot(map_infected_acer)
-# Add infected trees
+plot(map_infested_acer)
+# Add infested trees
 points(
-  trees_infected[trees_infected$marks$PointType == "Infected"],
+  trees_infested[trees_infested$marks$PointType == "infested"],
   pch = 20
 )
 # And decaying trees
 points(
-  trees_infected[trees_infected$marks$PointType == "Decaying"],
+  trees_infested[trees_infested$marks$PointType == "Decaying"],
   pch = 4,
   col = "red"
 )
 ```
-Infected and sane maple trees are significantly concentrated.
 
-In contrast, decaying trees and mapples rather repulse each others.
+infested and sane maple trees are significantly concentrated.
+The map shows that the local concentration of maples around infested trees is generally high (warm colors around black points). 
+
+In contrast, decaying trees and maples rather, but non significantly, repulse each others: the intertype $M$ function between them is plotted below:
 
 ```{r}
-trees_infected %>% 
+trees_infested %>% 
    MEnvelope(
      r = 0:(10 * Distance) / 5,
      ReferenceType = "Decaying",
