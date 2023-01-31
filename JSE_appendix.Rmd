@@ -61,12 +61,14 @@ knitr::knit_hooks$set(chunk = function(x, options) {
 ```{r Options, include=FALSE}
 ### Customized options for this document
 # Add necessary packages here
-Packages <- c("dplyr", "ggplot2", "stringr", "sf", "dbmss")
+Packages <- c("dplyr", "ggplot2", "stringr", "sf", "dbmss", "magick")
 # Install them
 InstallPackages(Packages)
 
-# knitr options
+# Crop images (requires package magick 
+# and pdfcrop installed by tinytex::tlmgr_install("pdfcrop"))
 knitr::knit_hooks$set(crop = knitr::hook_pdfcrop)
+# knitr options
 knitr::opts_chunk$set(
   cache =   TRUE,     # Cache chunk results
   crop =    TRUE,     # Crop fig margins in pdf  
@@ -623,7 +625,8 @@ So the appropriate distance should be chosen according to the knowledge of the s
 
 ## Concentration of maples around infested trees
 
-To test the intertype concentration between sane and infested maple trees, the intertype *M* statistic is computed.
+To test the intertype concentration between sane and infested maple trees, the following $M$-intertype is computed: we evaluate whether the proportion of maples trees is more important in the close neighborhood of infested maples than elsewhere. 
+If so, results give support to the existence of a contagious disease [@Hantsch2014].
 
 ```{r}
 trees_infested %>% 
@@ -637,6 +640,8 @@ trees_infested %>%
 
 autoplot(M_infested_Acer)
 ```
+
+The *M* plot detects a significant concentration of maples around infested maples.
 
 The map is produced.
 
@@ -673,21 +678,6 @@ points(
 )
 ```
 
-Infested and sane maple trees are significantly concentrated.
-The map shows that the local concentration of maples around infested trees is generally high (warm colors around black points). 
-
-In contrast, decaying trees and maples rather, but non significantly, repulse each others: the intertype $M$ function between them is plotted below:
-
-```{r}
-trees_infested %>% 
-   MEnvelope(
-     r = 0:(10 * Distance) / 5,
-     ReferenceType = "Decaying",
-     NeighborType = "Acer",
-     NumberOfSimulations = NumberOfSimulations
-  ) ->
-  M_Decaying_Acer
-autoplot(M_Decaying_Acer)
-```
+The map shows that the local concentration of maple around infested trees is generally high (warm colors around black points).
 
 `r if (!knitr:::is_latex_output()) '# References {-}'`
