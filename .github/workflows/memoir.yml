@@ -24,7 +24,6 @@ jobs:
           install.packages(c("distill", "downlit", "memoiR", "rmdformats", "tinytex"))
           tinytex::install_tinytex()
           tinytex::tlmgr_install("pdfcrop")
-          install.packages("magick")
         shell: Rscript {0}
       - name: Install dbmss dev
         env:
