@@ -92,11 +92,11 @@ theme_update(panel.background=element_rect(fill="transparent", colour=NA),
 knitr::opts_chunk$set(dev.args=list(bg="transparent"))
 
 # Random seed
-set.seed(975)
+set.seed(973)
 ```
 
 
-# Theoretical example: non-homogeneous controls{#sec:thnonh}
+# Theoretical example
 
 This section allows reproducing the theoretical example presented in the main text.
 Analyses rely on the _dbmss_ [@Marcon2014] package for R [@R].
@@ -137,7 +137,7 @@ autoplot(ALL)
 
 ```{r}
 # Fix the number of simulations and the level of risk
-NumberOfSimulations <- 1000
+NumberOfSimulations <- 10
 Alpha <- .01
 
 # Calculate and plot M Cases
@@ -217,7 +217,7 @@ points(
 ```
 
 
-# Suzanne Lenglen Park{#sec:posl}
+# Suzanne Lenglen Park
 
 ## Data
 
@@ -506,7 +506,7 @@ ratio <- with(
   }
 )
 # Map resolution: number of columns of the grid.
-resolution <- 512
+resolution <- 128
 ```
 
 A kriged weighted, marked, planar point patterns (`kwmppp`) object is produced and plotted.
