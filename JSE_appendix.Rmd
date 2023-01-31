@@ -137,7 +137,7 @@ autoplot(ALL)
 
 ```{r}
 # Fix the number of simulations and the level of risk
-NumberOfSimulations <- 10
+NumberOfSimulations <- 1000
 Alpha <- .01
 
 # Calculate and plot M Cases
@@ -200,7 +200,6 @@ points(
 We can see that cases are concentrated almost everywhere (local *M* value above 1) because we chose a Matérn point pattern.
 
 The areas with the higher relative concentration are located in the north of the map because the controls are less dense there.
-The south-eastern group of points illustrates that the relative concentration of cases can be below 1 when only a few cases are present among many controls.
 
 
 ## Compare with the density of cases
@@ -506,7 +505,7 @@ ratio <- with(
   }
 )
 # Map resolution: number of columns of the grid.
-resolution <- 128
+resolution <- 512
 ```
 
 A kriged weighted, marked, planar point patterns (`kwmppp`) object is produced and plotted.
