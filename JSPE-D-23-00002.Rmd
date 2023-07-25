@@ -104,6 +104,7 @@ Cases are a Matérn [@Matern1960] point pattern with $\kappa$ (expected) cluster
 Controls are a Poisson point pattern whose density $\lambda$ decreases exponentially along the y-axis (we will call "north" the higher y values).
 
 ```{r}
+library(dplyr)
 library(dbmss)
 # Simulation of cases (clusters)
 rMatClust(kappa = 10, scale = 0.05, mu = 10) %>% 
