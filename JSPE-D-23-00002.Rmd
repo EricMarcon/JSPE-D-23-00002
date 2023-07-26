@@ -132,7 +132,7 @@ autoplot(ALL)
 
 ```{r}
 # Fix the number of simulations and the level of risk
-NumberOfSimulations <- 1000
+NumberOfSimulations <- 200
 Alpha <- .01
 
 # Calculate and plot M Cases
