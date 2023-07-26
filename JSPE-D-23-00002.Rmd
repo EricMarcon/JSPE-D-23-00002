@@ -132,7 +132,7 @@ autoplot(ALL)
 
 ```{r}
 # Fix the number of simulations and the level of risk
-NumberOfSimulations <- 100
+NumberOfSimulations <- 1000
 Alpha <- .01
 
 # Calculate and plot M Cases
@@ -216,6 +216,7 @@ points(
 ## Confidence level
 
 The individual values of *M* can be compared to their distribution under the null hypothesis of radom location, i.e. where all points except for the reference one are shuffled among all actual locations.
+
 The code is similar to the previous one, except for the `Quantiles` arguments that are set to `TRUE` in `Mhat()` to calculate them (a computer-intensive step) and in `Smooth()` to smooth the quantiles rather than the function values.
 
 The quantiles of the actual values with respect to their null hypothesis distribution can be mapped.
@@ -245,11 +246,13 @@ M_TheoEx_q_map <- Smooth(
 
 # Plot the point pattern with values of M(Distance)
 plot(M_TheoEx_q_map, main = "")
+# Add contour lines
+contour(M_TheoEx_q_map, add=TRUE)
 # Add the cases to the map
 CASES <- ALL[ALL$marks$PointType == "Cases"]
 points(CASES, pch = 20)
-# Plot high quantiles in red. 
-# Significant values are store in "High" and "Low" attributes of the image
+# Plot high quantiles in green 
+# Significant values are stored in "High" and "Low" attributes of the image
 points(
   CASES[attr(M_TheoEx_q_map, "High")],
   pch = 20, col = "green"
@@ -257,7 +260,30 @@ points(
 ```
 
 The green points have their individual *M* value greater than the critical value of the simulations, i.e. it is in the 0.5% top values.
+Some of them may be quite different from their neighbors: the southern most green point on the map has a high confidence value in an area where other points are on average in the 70th percentile of the simulations only.
 
+### Map with confidence level
+
+A single map can be produced with the local concentration levels, including the reference points in green when their individual concentration level is significant, in red otherwise. 
+
+```{r}
+# Plot the point pattern with values of M(Distance)
+plot(M_TheoEx_map, main = "")
+# Add contour lines
+contour(M_TheoEx_map, add=TRUE)
+# Add the cases to the map
+points(
+  ALL[ALL$marks$PointType == "Cases"],
+  pch = 20, col = "red"
+)
+# Plot significant points in green 
+points(
+  CASES[attr(M_TheoEx_q_map, "High")],
+  pch = 20, col = "green"
+)
+```
+
+The 1x1 map shows the concentration level (local $M$ values in neighborhoods of radius 0.1, scale on the right) and the statistical significance of the concentration around the reference points (in green, risk level < 1%).
 
 # Suzanne Lenglen Park
 
@@ -528,15 +554,17 @@ To map it, individual values must be calculated at the chosen distance, that is 
 
 ```{r}
 trees_2021 %>% 
-   Mhat(
-     r = c(0, Distance),
-     ReferenceType = "Acer",
-     NeighborType = "Acer", 
-     Individual = TRUE
+  Mhat(
+    r = c(0, Distance),
+    ReferenceType = "Acer",
+    NeighborType = "Acer", 
+    Individual = TRUE,
+    Quantiles = TRUE,
+    NumberOfSimulations = NumberOfSimulations,
+    Alpha = Alpha
   ) ->
   M_ind_Acer
 ```
-
 
 A map is produced by smoothing the individual values.
 To respect the geometry of the map, the ratio of rows to columns of the image to produced is first calculated.
@@ -562,75 +590,55 @@ trees_2021 %>%
 plot(map_acer, main = "")
 # Add contour lines
 contour(map_acer, nlevels = 10, add=TRUE)
-# Add infested trees
+# Show all maple trees
+trees_acer <- trees_2021[trees_2021$marks$PointType == "Acer"]
 points(
-  trees_infested[trees_infested$marks$PointType == "infested"],
-  pch = 20
+  trees_acer,
+  pch = 20, col = "red"
 )
-# And decaying trees
+# Show significant points in green
 points(
-  trees_infested[trees_infested$marks$PointType == "Decaying"],
-  pch = 4,
-  col = "red"
+  trees_acer[attr(map_acer, "High")],
+  pch = 20, col = "green"
 )
 ```
 
-Logged trees are added to the map:
-
-- infested trees are black points,
-- Decaying trees are red crosses.
-
-Infested trees are present in the areas where maples are concentrated.
+Maple trees are shown as points.
+The significant ones, i.e. whose individual M values are in the top 0.5% of their simulations under the null hypothesis of random location, are green.
 
 
 ### Confidence level
 
-Each individual value of $M$ is compared to its distribution under the null hypothesis of random location of all other points, obtained by Monte-Carlo simulations.
-A map is produced.
+The map of quantiles is produced.
 
 ```{r}
-# Calculate individual M with quantiles 
-trees_2021 %>% 
-  Mhat(
-    r = c(0, Distance),
-    ReferenceType = "Acer",
-    NeighborType = "Acer", 
-    Individual = TRUE,
-    Quantiles = TRUE,
-    NumberOfSimulations = NumberOfSimulations,
-    Alpha = Alpha
-  ) ->
-  M_ind_Acer
 # Smooth the values
 trees_2021 %>% 
   Smooth(
     fvind = M_ind_Acer, 
     distance = Distance, 
     Quantiles = TRUE,
-    Adjust = 2,
     Nbx = resolution, Nby = resolution * ratio
   ) -> map_acer
 
 plot(map_acer, main = "")
 # Add contour lines
 contour(map_acer, nlevels = 10, add=TRUE)
-# Add infested trees
+# Show all maple trees
+trees_acer <- trees_2021[trees_2021$marks$PointType == "Acer"]
 points(
-  trees_infested[trees_infested$marks$PointType == "infested"],
-  pch = 20
+  trees_acer,
+  pch = 20, col = "red"
 )
-# Significant values are stored in "High" and "Low" attributes of the image
+# Show significant points in green
 points(
-  trees_2021[trees_2021$marks$PointType == "Acer"][attr(map_acer, "High")],
+  trees_acer[attr(map_acer, "High")],
   pch = 20, col = "green"
 )
-# And decaying trees
-points(
-  trees_infested[trees_infested$marks$PointType == "Decaying"],
-  pch = 4,
-  col = "red"
-)
 ```
+
+The information brought by the map of quantiles is similar to that of the significant points, whose individual quantile are above 0.995.
+
 
 ### Alternative distances
 
@@ -640,7 +648,7 @@ At greater distances, such as 30m, concentration is still significant but neighb
 
 Both alternative distances are tested here.
 
-Considering 6-meter-radius neighborhoods, the map is difficult to read because it shows local, highly variable, information that hides the main tendencies. 
+The map made with 6-meter-radius neighborhoods is similar to the previous one.
 
 ```{r, echo = FALSE}
 trees_2021 %>% 
@@ -713,13 +721,64 @@ points(
 ```
 
 Increasing the distance blurs the information where high and low values overlap and cancel out.
-Low concentration areas, where $M<1$ are masked.
+
 In conclusion, the appropriate distance should be chosen according to the knowledge of the studied process.
 
 
-## Concentration of maples around infested trees
+## Contagion and spatial structure
 
-To test the intertype concentration between sane and infested maple trees, the following $M$-intertype is computed: we evaluate whether the proportion of maples trees is more important in the close neighborhood of infested maples than elsewhere. 
+To conclude this study, we show that infested trees are located in areas of high concentration of maples.
+
+
+### Location of infested maple trees
+
+
+```{r}
+# Window ratio
+ratio <- with(
+  trees_infested$window, 
+  {
+   (yrange[2] - yrange[1]) / (xrange[2] - xrange[1])
+  }
+)
+
+# Smooth the values
+trees_2021 %>% 
+  Smooth(
+    fvind = M_ind_Acer, 
+    distance = Distance, 
+    Quantiles = FALSE,
+    Nbx = resolution, Nby = resolution * ratio
+  ) -> map_acer
+
+plot(map_acer, main = "")
+# Add contour lines
+contour(map_acer, nlevels = 10, add=TRUE)
+# Show all maple trees
+trees_acer <- trees_2021[trees_2021$marks$PointType == "Acer"]
+# Add infested trees
+points(
+  trees_infested[trees_infested$marks$PointType == "infested"],
+  pch = 3, col = "red"
+)
+# And decaying trees
+points(
+  trees_infested[trees_infested$marks$PointType == "Decaying"],
+  pch = 4, col = "green"
+)
+```
+
+Logged trees are shown on the map:
+
+- Infested trees are represented as red "+".
+- Decaying trees are represented as green "x".
+
+Infested trees are present in the areas where maples are concentrated.
+
+
+### Concentration of maples around infested trees
+
+To test the intertype concentration between sane and infested maple trees, the following $M$-intertype is computed: we evaluate whether the proportion of maples trees higher in the close neighborhood of infested maples than elsewhere. 
 If so, results give support to the existence of a contagious disease [@Hantsch2014].
 
 ```{r}
@@ -758,8 +817,6 @@ trees_infested %>%
   Smooth(
     fvind = M_ind_infested_Acer, 
     distance = Distance, 
-    Quantiles = TRUE,
-    Adjust = 2,
     Nbx = resolution, Nby = resolution * ratio
   ) -> map_infested_acer
 
@@ -785,6 +842,7 @@ points(
 )
 ```
 
-The map shows that the local concentration of maple around infested trees is generally high (warm colors around black points).
+The map shows that the local concentration of maple around infested trees is generally high (warm colors around points).
+The green points have a significantly high concentration of maple trees in their neighborhood.
 
 `r if (!knitr:::is_latex_output()) '# References {-}'`
