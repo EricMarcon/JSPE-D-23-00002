@@ -20,6 +20,7 @@ output:
   rmdformats::downcute:
     use_bookdown: yes
     lightbox: yes
+    toc_depth: 3
   bookdown::pdf_book:
     template: latex/template.tex
     citation_package: natbib
@@ -73,7 +74,7 @@ knitr::opts_chunk$set(
   # Graphic devices (ragg_png is better than standard png)
   dev = c("ragg_png", "pdf"),
   # Code chunk format
-  tidy = TRUE, tidy.opts = list(blank=FALSE, width.cutoff=50),
+  tidy = FALSE, tidy.opts = list(blank=FALSE, width.cutoff=50),
   size = "scriptsize", knitr.graphics.auto_pdf = TRUE
   )
 options(width = 50)
@@ -132,7 +133,7 @@ autoplot(ALL)
 
 ```{r}
 # Fix the number of simulations and the level of risk
-NumberOfSimulations <- 200
+NumberOfSimulations <- 1000
 Alpha <- .01
 
 # Calculate and plot M Cases
@@ -188,10 +189,10 @@ plot(M_TheoEx_map, main = "")
 # Add the cases to the map
 points(
   ALL[ALL$marks$PointType == "Cases"],
-  pch = 20, col = "red"
+  pch = 20, col = "green"
 )
 # Add contour lines
-contour(M_TheoEx_map, add=TRUE)
+contour(M_TheoEx_map, add = TRUE)
 ```
 
 We can see that cases are concentrated almost everywhere (local *M* value above 1) because we chose a Matérn point pattern.
@@ -208,82 +209,11 @@ High densities are *not* similar to high relative concentrations in this example
 plot(density(CASES), main = "")
 points(
   ALL[ALL$marks$PointType == "Cases"],
-  pch = 20, col = "red"
-)
-```
-
-
-## Confidence level
-
-The individual values of *M* can be compared to their distribution under the null hypothesis of random location, i.e. where all points except for the reference one are shuffled among all actual locations.
-
-The code is similar to the previous one, except for the `Quantiles` arguments that are set to `TRUE` in `Mhat()` to calculate them (a computer-intensive step) and in `Smooth()` to smooth the quantiles rather than the function values.
-
-The quantiles of the actual values with respect to their null hypothesis distribution can be mapped.
-
-```{r}
-# Calculate the M values to plot with their confidence level
-ALL %>% 
-  Mhat(
-    r = c(0, Distance),
-    ReferenceType = "Cases",
-    NeighborType = "Cases", 
-    Individual = TRUE,
-    Quantiles = TRUE,
-    NumberOfSimulations = NumberOfSimulations,
-    Alpha = Alpha
-  ) -> 
-  M_TheoEx
-
-# Create a map of the quantiles
-M_TheoEx_q_map <- Smooth(
-  ALL, 
-  fvind = M_TheoEx, 
-  distance = Distance,
-  Quantiles = TRUE,
-  Nbx = resolution, Nby = resolution
-)
-
-# Plot the point pattern with values of M(Distance)
-plot(M_TheoEx_q_map, main = "")
-# Add contour lines
-contour(M_TheoEx_q_map, add=TRUE)
-# Add the cases to the map
-CASES <- ALL[ALL$marks$PointType == "Cases"]
-points(CASES, pch = 20)
-# Plot high quantiles in green 
-# Significant values are stored in "High" and "Low" attributes of the image
-points(
-  CASES[attr(M_TheoEx_q_map, "High")],
   pch = 20, col = "green"
 )
 ```
 
-The green points have their individual *M* value greater than the critical value of the simulations, i.e. it is in the 0.5% top values.
-Some of them may be quite different from their neighbors: the southern most green point on the map has a high confidence value in an area where other points are on average in the 70th percentile of the simulations only.
 
-### Map with confidence level
-
-A single map can be produced with the local concentration levels, including the reference points in green when their individual concentration level is significant, in red otherwise. 
-
-```{r}
-# Plot the point pattern with values of M(Distance)
-plot(M_TheoEx_map, main = "")
-# Add contour lines
-contour(M_TheoEx_map, add=TRUE)
-# Add the cases to the map
-points(
-  ALL[ALL$marks$PointType == "Cases"],
-  pch = 20, col = "red"
-)
-# Plot significant points in green 
-points(
-  CASES[attr(M_TheoEx_q_map, "High")],
-  pch = 20, col = "green"
-)
-```
-
-The 1x1 map shows the concentration level (local $M$ values in neighborhoods of radius 0.1, scale on the right) and the statistical significance of the concentration around the reference points (in green, risk level < 1%).
 
 # Suzanne Lenglen Park
 
@@ -464,7 +394,7 @@ library("stringr")
 trees$Logging_reason[is.na(trees$Logging_reason)] <- ""
 trees$Logging_reason %>% 
   str_replace("Arbre.*", "Decaying") %>% 
-  str_replace("Foyer.*", "infested") ->
+  str_replace("Foyer.*", "Infested") ->
   trees$Logging_reason
 ```
 
@@ -558,16 +488,13 @@ trees_2021 %>%
     r = c(0, Distance),
     ReferenceType = "Acer",
     NeighborType = "Acer", 
-    Individual = TRUE,
-    Quantiles = TRUE,
-    NumberOfSimulations = NumberOfSimulations,
-    Alpha = Alpha
+    Individual = TRUE
   ) ->
   M_ind_Acer
 ```
 
 A map is produced by smoothing the individual values.
-To respect the geometry of the map, the ratio of rows to columns of the image to produced is first calculated.
+To respect the geometry of the map, the ratio of rows to columns of the image to produce is first calculated.
 
 ```{r}
 # Window ratio
@@ -583,61 +510,26 @@ trees_2021 %>%
   Smooth(
     fvind = M_ind_Acer, 
     distance = Distance, 
-    Quantiles = FALSE,
     Nbx = resolution, Nby = resolution * ratio
   ) -> map_acer
 
 plot(map_acer, main = "")
 # Add contour lines
 contour(map_acer, nlevels = 10, add=TRUE)
-# Show all maple trees
-trees_acer <- trees_2021[trees_2021$marks$PointType == "Acer"]
+# Add infested trees
 points(
-  trees_acer,
-  pch = 20, col = "red"
+  trees_infested[trees_infested$marks$PointType == "Infested"],
+  pch = 20
 )
-# Show significant points in green
+# And decaying trees
 points(
-  trees_acer[attr(map_acer, "High")],
-  pch = 20, col = "green"
-)
-```
-
-Maple trees are shown as points.
-The significant ones, i.e. whose individual M values are in the top 0.5% of their simulations under the null hypothesis of random location, are green.
-
-
-### Confidence level
-
-The map of quantiles is produced.
-
-```{r}
-# Smooth the values
-trees_2021 %>% 
-  Smooth(
-    fvind = M_ind_Acer, 
-    distance = Distance, 
-    Quantiles = TRUE,
-    Nbx = resolution, Nby = resolution * ratio
-  ) -> map_acer
-
-plot(map_acer, main = "")
-# Add contour lines
-contour(map_acer, nlevels = 10, add=TRUE)
-# Show all maple trees
-trees_acer <- trees_2021[trees_2021$marks$PointType == "Acer"]
-points(
-  trees_acer,
-  pch = 20, col = "red"
-)
-# Show significant points in green
-points(
-  trees_acer[attr(map_acer, "High")],
-  pch = 20, col = "green"
+  trees_infested[trees_infested$marks$PointType == "Decaying"],
+  pch = 4,
+  col = "green"
 )
 ```
 
-The information brought by the map of quantiles is similar to that of the significant points, whose individual quantile are above 0.995.
+Logged trees are shown on the map: infested trees are back points and decaying trees are green crosses.
 
 
 ### Alternative distances
@@ -650,7 +542,7 @@ Both alternative distances are tested here.
 
 The map made with 6-meter-radius neighborhoods is similar to the previous one.
 
-```{r, echo = FALSE}
+```{r, echo=FALSE}
 trees_2021 %>% 
    Mhat(
      r = c(0, 6),
@@ -664,7 +556,6 @@ trees_2021 %>%
   Smooth(
     fvind = M_ind_Acer_6, 
     distance = 6, 
-    Quantiles = FALSE,
     Nbx = resolution, Nby = resolution * ratio
   ) -> map_acer_6
 
@@ -673,20 +564,20 @@ plot(map_acer_6, main = "")
 contour(map_acer_6, nlevels = 10, add=TRUE)
 # Add infested trees
 points(
-  trees_infested[trees_infested$marks$PointType == "infested"],
+  trees_infested[trees_infested$marks$PointType == "Infested"],
   pch = 20
 )
 # And decaying trees
 points(
   trees_infested[trees_infested$marks$PointType == "Decaying"],
   pch = 4,
-  col = "red"
+  col = "green"
 )
 ```
 
 30-meter-radius neighborhoods are shown below:
 
-```{r, echo = FALSE}
+```{r, echo=FALSE}
 trees_2021 %>% 
    Mhat(
      r = c(0, 30),
@@ -700,7 +591,6 @@ trees_2021 %>%
   Smooth(
     fvind = M_ind_Acer_30, 
     distance = 30, 
-    Quantiles = FALSE,
     Nbx = resolution, Nby = resolution * ratio
   ) -> map_acer_30
 
@@ -709,14 +599,14 @@ plot(map_acer_30, main = "")
 contour(map_acer_30, nlevels = 10, add=TRUE)
 # Add infested trees
 points(
-  trees_infested[trees_infested$marks$PointType == "infested"],
+  trees_infested[trees_infested$marks$PointType == "Infested"],
   pch = 20
 )
 # And decaying trees
 points(
   trees_infested[trees_infested$marks$PointType == "Decaying"],
   pch = 4,
-  col = "red"
+  col = "green"
 )
 ```
 
@@ -747,7 +637,6 @@ trees_2021 %>%
   Smooth(
     fvind = M_ind_Acer, 
     distance = Distance, 
-    Quantiles = FALSE,
     Nbx = resolution, Nby = resolution * ratio
   ) -> map_acer
 
@@ -758,8 +647,8 @@ contour(map_acer, nlevels = 10, add=TRUE)
 trees_acer <- trees_2021[trees_2021$marks$PointType == "Acer"]
 # Add infested trees
 points(
-  trees_infested[trees_infested$marks$PointType == "infested"],
-  pch = 3, col = "red"
+  trees_infested[trees_infested$marks$PointType == "Infested"],
+  pch = 20
 )
 # And decaying trees
 points(
@@ -767,11 +656,6 @@ points(
   pch = 4, col = "green"
 )
 ```
-
-Logged trees are shown on the map:
-
-- Infested trees are represented as red "+".
-- Decaying trees are represented as green "x".
 
 Infested trees are present in the areas where maples are concentrated.
 
@@ -785,7 +669,7 @@ If so, results give support to the existence of a contagious disease [@Hantsch20
 trees_infested %>% 
    MEnvelope(
      r = 0:(10 * Distance) / 5,
-     ReferenceType = "infested",
+     ReferenceType = "Infested",
      NeighborType = "Acer",
      NumberOfSimulations = NumberOfSimulations
   ) ->
@@ -803,12 +687,9 @@ The map is produced.
 ```{r}
 trees_infested %>% 
   Mhat(
-    ReferenceType = "infested",
+    ReferenceType = "Infested",
     NeighborType = "Acer", 
-    Individual = TRUE,
-    Quantiles = TRUE,
-    NumberOfSimulations = NumberOfSimulations,
-    Alpha = Alpha
+    Individual = TRUE
   ) ->
   M_ind_infested_Acer
 
@@ -818,7 +699,8 @@ trees_infested %>%
     fvind = M_ind_infested_Acer, 
     distance = Distance, 
     Nbx = resolution, Nby = resolution * ratio
-  ) -> map_infested_acer
+  ) -> 
+  map_infested_acer
 
 plot(map_infested_acer, main = "")
 # Add contour lines
@@ -826,23 +708,18 @@ contour(map_infested_acer, nlevels = 5, add=TRUE)
 
 # Add infested trees
 points(
-  trees_infested[trees_infested$marks$PointType == "infested"],
+  trees_infested[trees_infested$marks$PointType == "Infested"],
   pch = 20
-)
-# Significant values are stored in "High" and "Low" attributes of the image
-points(
-  trees_infested[trees_infested$marks$PointType == "Acer"][attr(map_infested_acer, "High")],
-  pch = 20, col = "green"
 )
 # And decaying trees
 points(
   trees_infested[trees_infested$marks$PointType == "Decaying"],
   pch = 4,
-  col = "red"
+  col = "green"
 )
 ```
 
 The map shows that the local concentration of maple around infested trees is generally high (warm colors around points).
-The green points have a significantly high concentration of maple trees in their neighborhood.
+
 
 `r if (!knitr:::is_latex_output()) '# References {-}'`
