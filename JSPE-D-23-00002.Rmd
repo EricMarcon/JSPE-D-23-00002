@@ -215,7 +215,7 @@ points(
 
 ## Confidence level
 
-The individual values of *M* can be compared to their distribution under the null hypothesis of radom location, i.e. where all points except for the reference one are shuffled among all actual locations.
+The individual values of *M* can be compared to their distribution under the null hypothesis of random location, i.e. where all points except for the reference one are shuffled among all actual locations.
 
 The code is similar to the previous one, except for the `Quantiles` arguments that are set to `TRUE` in `Mhat()` to calculate them (a computer-intensive step) and in `Smooth()` to smooth the quantiles rather than the function values.
 
