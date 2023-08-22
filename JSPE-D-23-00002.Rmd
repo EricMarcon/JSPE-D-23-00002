@@ -457,7 +457,7 @@ autoplot(trees_2021) +
 ```
 
 The map shows the tree genera. 
-Maple (*Acer spp.*) are the most abundant trees in the park.
+Maples (*Acer spp.*) are the most abundant trees in the park.
 
 
 ## Spatial concentration of maple trees
@@ -511,11 +511,12 @@ trees_2021 %>%
     fvind = M_ind_Acer, 
     distance = Distance, 
     Nbx = resolution, Nby = resolution * ratio
-  ) -> map_acer
+  ) -> 
+  map_acer
 
 plot(map_acer, main = "")
 # Add contour lines
-contour(map_acer, nlevels = 10, add=TRUE)
+contour(map_acer, nlevels = 10, add = TRUE)
 # Add infested trees
 points(
   trees_infested[trees_infested$marks$PointType == "Infested"],
@@ -557,11 +558,12 @@ trees_2021 %>%
     fvind = M_ind_Acer_6, 
     distance = 6, 
     Nbx = resolution, Nby = resolution * ratio
-  ) -> map_acer_6
+  ) -> 
+  map_acer_6
 
 plot(map_acer_6, main = "")
 # Add contour lines
-contour(map_acer_6, nlevels = 10, add=TRUE)
+contour(map_acer_6, nlevels = 10, add = TRUE)
 # Add infested trees
 points(
   trees_infested[trees_infested$marks$PointType == "Infested"],
@@ -592,11 +594,12 @@ trees_2021 %>%
     fvind = M_ind_Acer_30, 
     distance = 30, 
     Nbx = resolution, Nby = resolution * ratio
-  ) -> map_acer_30
+  ) -> 
+  map_acer_30
 
 plot(map_acer_30, main = "")
 # Add contour lines
-contour(map_acer_30, nlevels = 10, add=TRUE)
+contour(map_acer_30, nlevels = 10, add = TRUE)
 # Add infested trees
 points(
   trees_infested[trees_infested$marks$PointType == "Infested"],
@@ -638,11 +641,12 @@ trees_2021 %>%
     fvind = M_ind_Acer, 
     distance = Distance, 
     Nbx = resolution, Nby = resolution * ratio
-  ) -> map_acer
+  ) -> 
+  map_acer
 
 plot(map_acer, main = "")
 # Add contour lines
-contour(map_acer, nlevels = 10, add=TRUE)
+contour(map_acer, nlevels = 10, add = TRUE)
 # Show all maple trees
 trees_acer <- trees_2021[trees_2021$marks$PointType == "Acer"]
 # Add infested trees
@@ -704,7 +708,7 @@ trees_infested %>%
 
 plot(map_infested_acer, main = "")
 # Add contour lines
-contour(map_infested_acer, nlevels = 5, add=TRUE)
+contour(map_infested_acer, nlevels = 5, add = TRUE)
 
 # Add infested trees
 points(
