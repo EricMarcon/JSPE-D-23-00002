@@ -5,7 +5,7 @@ author:
   - name: "Florence Puech"
 abstract: >
   Code to reproduce the figures of the main text.
-date: "`r format(Sys.time(), '%d %B %Y')`"
+date: "05 December 2023"
 url: https://ericmarcon.github.io/JSE_appendix/
 github-repo: ericmarcon/JSE_appendix
 lang: en-US
@@ -265,7 +265,9 @@ Columns of interest are:
 library("dplyr")
 trees_all_raw %>% 
   # Filter Suzanne Lenglen park
-  filter(adresse == "PARC OMNISPORT SUZANNE LENGLEN / 7 BOULEVARD DES FRERES VOISIN") %>% 
+  filter(
+    adresse == "PARC OMNISPORT SUZANNE LENGLEN / 7 BOULEVARD DES FRERES VOISIN"
+  ) %>% 
   # Create a field with the species name
   mutate(Species_name = as.factor(paste(genre, espece))) %>%
   # Create a field with the status
@@ -309,13 +311,21 @@ An extra field, `Logging_reason` contains the motivation to cut them off (in Fre
 # Tree description
 trees_logged_raw %>%
   # Filter Suzanne Lenglen park
-  filter(adresse == "PARC OMNISPORT SUZANNE LENGLEN / 7 BOULEVARD DES FRERES VOISIN") %>% 
+  filter(
+    adresse == "PARC OMNISPORT SUZANNE LENGLEN / 7 BOULEVARD DES FRERES VOISIN"
+  ) %>% 
   # Exclude unidentified trees
-  filter(!is.na(especearbreprecedent), !is.na(libellefrancaisarbreprecedent), !is.na(genrearbreprecedent)) %>%
+  filter(
+    !is.na(especearbreprecedent), 
+    !is.na(libellefrancaisarbreprecedent), 
+    !is.na(genrearbreprecedent)
+  ) %>%
   filter(libellefrancaisarbreprecedent != "Non spécifié") %>%
   filter(especearbreprecedent != "n. sp.") %>% 
   # Create a field with the species name
-  mutate(Species_name = as.factor(paste(genrearbreprecedent, especearbreprecedent))) %>%
+  mutate(
+    Species_name = as.factor(paste(genrearbreprecedent, especearbreprecedent))
+  ) %>%
   # Create a numeric ID
   mutate(ID = as.integer(idbase)) %>%
   # Create a field with the status
