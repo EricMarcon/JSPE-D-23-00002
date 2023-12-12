@@ -93,7 +93,7 @@ set.seed(973)
 
 # Theoretical example
 
-This section allows reproducing the theoretical example presented in the main text.
+This section allows reproducing the theoretical example presented in the main text of @Marcon2023.
 Analyses rely on the _dbmss_ [@Marcon2014] package for R [@R].
 
 
