@@ -22,15 +22,8 @@ jobs:
           options(pkgType = "binary")
           options(install.packages.check.source = "no")
           install.packages(c("distill", "downlit", "memoiR", "rmdformats", "tinytex"))
-          tinytex::install_tinytex()
+          tinytex::install_tinytex(bundle = "TinyTeX")
           tinytex::tlmgr_install("pdfcrop")
-        shell: Rscript {0}
-      - name: Install dbmss dev
-        env:
-          GITHUB_PAT: ${{ secrets.GH_PAT }}
-        run: |
-          install.packages("remotes")
-          remotes::install_github("EricMarcon/dbmss", ref = "JSPE")
         shell: Rscript {0}
       - name: Render Rmarkdown files
         run: |
@@ -42,7 +35,7 @@ jobs:
         run: |
           echo 'theme: jekyll-theme-slate' > docs/_config.yml
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ghpages
           path: docs
@@ -50,10 +43,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: render
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: ghpages
           path: docs
